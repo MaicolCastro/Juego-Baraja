@@ -1,0 +1,15 @@
+{
+  "name": "juego-adivina",
+  "version": "1.0.0",
+  "description": "Juego web automatizado con frontend y backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "Alejandro Vaca",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1"
+  }
+}

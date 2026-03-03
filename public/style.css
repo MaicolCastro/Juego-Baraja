@@ -1,0 +1,92 @@
+body {
+    background: linear-gradient(135deg, #1e1e2f, #2a2a40);
+    color: white;
+    font-family: 'Segoe UI', sans-serif;
+    text-align: center;
+    margin: 0;
+    padding: 20px;
+}
+
+h1 {
+    margin-bottom: 30px;
+}
+
+.contenedor {
+    display: flex;
+    justify-content: center;
+    gap: 50px;
+    align-items: flex-start;
+}
+
+/* ----- CARTA ----- */
+
+.zona-carta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.carta {
+    width: 120px;
+    height: 170px;
+    background: white;
+    color: black;
+    border-radius: 10px;
+    border: 3px solid #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 28px;
+    font-weight: bold;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    margin-bottom: 20px;
+    transition: transform 0.3s;
+}
+
+.carta.animar {
+    transform: rotateY(180deg);
+}
+
+button {
+    padding: 12px 25px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    background: #ffcc00;
+    font-weight: bold;
+    transition: 0.2s;
+}
+
+button:hover {
+    background: #ffaa00;
+}
+
+/* ----- TABLERO ----- */
+
+.tablero {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.fila {
+    display: grid;
+    grid-template-columns: repeat(8, 50px);
+    gap: 5px;
+}
+
+.casilla {
+    width: 50px;
+    height: 50px;
+    background: #444;
+    border: 1px solid #222;
+}
+
+.casilla:nth-child(even) {
+    background: #555;
+}
+
+.ficha {
+    background: gold !important;
+}
