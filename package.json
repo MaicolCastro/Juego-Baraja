@@ -9,6 +9,7 @@
   "author": "Alejandro Vaca",
   "license": "ISC",
   "dependencies": {
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "pg": "^8.13.1"
