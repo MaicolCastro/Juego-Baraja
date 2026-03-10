@@ -8,7 +8,65 @@ body {
 }
 
 h1 {
-    margin-bottom: 30px;
+    margin-bottom: 20px;
+}
+
+.panel-usuario {
+    max-width: 900px;
+    margin: 0 auto 20px auto;
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.panel-usuario .auth,
+.panel-usuario .info-usuario {
+    background: rgba(0, 0, 0, 0.25);
+    padding: 15px 20px;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    flex: 1;
+    text-align: left;
+}
+
+.panel-usuario h2,
+.panel-usuario h3 {
+    margin-top: 0;
+}
+
+.fila-input {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.fila-botones-auth {
+    display: flex;
+    gap: 10px;
+    margin-top: 5px;
+}
+
+input[type="text"],
+input[type="number"],
+select {
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #555;
+    background: #222;
+    color: white;
+    outline: none;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.mensaje {
+    font-size: 0.9rem;
+    min-height: 1.2em;
 }
 
 .contenedor {
@@ -24,6 +82,22 @@ h1 {
     display: flex;
     flex-direction: column;
     align-items: center;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.config-juego {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 15px;
+    text-align: left;
+}
+
+.config-juego label {
+    font-size: 0.9rem;
 }
 
 .carta {
@@ -36,11 +110,13 @@ h1 {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 28px;
+    font-size: 20px;
     font-weight: bold;
     box-shadow: 0 10px 25px rgba(0,0,0,0.5);
     margin-bottom: 20px;
     transition: transform 0.3s;
+    text-align: center;
+    padding: 6px;
 }
 
 .carta.animar {
@@ -48,8 +124,8 @@ h1 {
 }
 
 button {
-    padding: 12px 25px;
-    font-size: 16px;
+    padding: 10px 20px;
+    font-size: 15px;
     border-radius: 8px;
     border: none;
     cursor: pointer;
@@ -72,7 +148,7 @@ button:hover {
 
 .fila {
     display: grid;
-    grid-template-columns: repeat(8, 50px);
+    grid-template-columns: repeat(5, 50px);
     gap: 5px;
 }
 
@@ -89,4 +165,15 @@ button:hover {
 
 .ficha {
     background: gold !important;
+}
+
+@media (max-width: 900px) {
+    .panel-usuario {
+        flex-direction: column;
+    }
+
+    .contenedor {
+        flex-direction: column;
+        align-items: center;
+    }
 }

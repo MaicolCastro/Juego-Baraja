@@ -1,73 +1,301 @@
-const meta = 8;
+const meta = 5;
 const palos = ["espadas", "oros", "copas", "bastos"];
 
 let posiciones = {
-    espadas: 0,
-    oros: 0,
-    copas: 0,
-    bastos: 0
+  espadas: 0,
+  oros: 0,
+  copas: 0,
+  bastos: 0,
 };
 
-// Crear tablero visual
-function crearTablero() {
-    palos.forEach(palo => {
-        const fila = document.getElementById(palo);
-        fila.innerHTML = "";
+let usuarioActual = null;
 
-        for (let i = 0; i < meta; i++) {
-            const casilla = document.createElement("div");
-            casilla.classList.add("casilla");
-            fila.appendChild(casilla);
-        }
-    });
+function crearTablero() {
+  palos.forEach((palo) => {
+    const fila = document.getElementById(palo);
+    fila.innerHTML = "";
+
+    for (let i = 0; i < meta; i++) {
+      const casilla = document.createElement("div");
+      casilla.classList.add("casilla");
+      fila.appendChild(casilla);
+    }
+  });
 }
 
 crearTablero();
 
-async function sacarCarta() {
-
-    const respuesta = await fetch("/sacar");
-    const datos = await respuesta.json();
-
-    const carta = document.getElementById("cartaVisual");
-
-    carta.innerHTML = simboloPalo(datos.carta);
-    carta.classList.add("animar");
-
-    setTimeout(() => {
-        carta.classList.remove("animar");
-    }, 300);
-
-    posiciones = datos.posiciones;
-
-    actualizarTablero();
-
-    if (datos.ganador) {
-        document.getElementById("ganador").innerText =
-            "🏆 Ganó " + datos.ganador.toUpperCase();
-    }
+function simboloPalo(palo) {
+  switch (palo) {
+    case "espadas":
+      return "🗡 ESPADAS";
+    case "oros":
+      return "🥇 OROS";
+    case "copas":
+      return "🏆 COPAS";
+    case "bastos":
+      return "🪵 BASTOS";
+    default:
+      return "?";
+  }
 }
 
 function actualizarTablero() {
-    palos.forEach(palo => {
-        const fila = document.getElementById(palo);
-        const casillas = fila.children;
+  palos.forEach((palo) => {
+    const fila = document.getElementById(palo);
+    const casillas = fila.children;
 
-        for (let i = 0; i < meta; i++) {
-            casillas[i].classList.remove("ficha");
-        }
-
-        if (posiciones[palo] > 0 && posiciones[palo] <= meta) {
-            casillas[posiciones[palo] - 1].classList.add("ficha");
-        }
-    });
-}
-
-function simboloPalo(palo) {
-    switch (palo) {
-        case "espadas": return "🗡 ESPADAS";
-        case "oros": return "🥇 OROS";
-        case "copas": return "🏆 COPAS";
-        case "bastos": return "🪵 BASTOS";
+    for (let i = 0; i < meta; i++) {
+      casillas[i].classList.remove("ficha");
     }
+
+    if (posiciones[palo] > 0 && posiciones[palo] <= meta) {
+      casillas[posiciones[palo] - 1].classList.add("ficha");
+    }
+  });
 }
+
+function refrescarUsuarioEnPantalla() {
+  const infoUsuario = document.getElementById("infoUsuario");
+  const labelNombre = document.getElementById("labelNombre");
+  const labelPuntos = document.getElementById("labelPuntos");
+
+  if (usuarioActual) {
+    infoUsuario.style.display = "block";
+    labelNombre.textContent = usuarioActual.name;
+    labelPuntos.textContent = usuarioActual.points;
+  } else {
+    infoUsuario.style.display = "none";
+    labelNombre.textContent = "";
+    labelPuntos.textContent = "";
+  }
+}
+
+async function registrarUsuario() {
+  const nombre = document.getElementById("nombreUsuario").value.trim();
+  const mensajeAuth = document.getElementById("mensajeAuth");
+  mensajeAuth.textContent = "";
+
+  if (!nombre) {
+    mensajeAuth.textContent = "Ingresa un nombre de usuario.";
+    return;
+  }
+
+  try {
+    const resp = await fetch("/api/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: nombre }),
+    });
+
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      mensajeAuth.textContent = data.error || "Error al registrar.";
+      return;
+    }
+
+    usuarioActual = data;
+    localStorage.setItem("usuarioJuego", JSON.stringify(usuarioActual));
+    refrescarUsuarioEnPantalla();
+    mensajeAuth.textContent = "Usuario registrado correctamente. Tienes 1000 puntos.";
+  } catch (e) {
+    console.error(e);
+    mensajeAuth.textContent = "Error de comunicación con el servidor.";
+  }
+}
+
+async function loginUsuario() {
+  const nombre = document.getElementById("nombreUsuario").value.trim();
+  const mensajeAuth = document.getElementById("mensajeAuth");
+  mensajeAuth.textContent = "";
+
+  if (!nombre) {
+    mensajeAuth.textContent = "Ingresa un nombre de usuario.";
+    return;
+  }
+
+  try {
+    const resp = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: nombre }),
+    });
+
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      mensajeAuth.textContent = data.error || "Error al iniciar sesión.";
+      return;
+    }
+
+    usuarioActual = data;
+    localStorage.setItem("usuarioJuego", JSON.stringify(usuarioActual));
+    refrescarUsuarioEnPantalla();
+    mensajeAuth.textContent = "Sesión iniciada.";
+  } catch (e) {
+    console.error(e);
+    mensajeAuth.textContent = "Error de comunicación con el servidor.";
+  }
+}
+
+async function comprarPuntos() {
+  if (!usuarioActual) {
+    document.getElementById("mensajeCompra").textContent =
+      "Primero inicia sesión o regístrate.";
+    return;
+  }
+
+  const paquetesInput = document.getElementById("inputPaquetes");
+  const mensajeCompra = document.getElementById("mensajeCompra");
+  mensajeCompra.textContent = "";
+
+  const paquetes = parseInt(paquetesInput.value, 10);
+  if (!paquetes || paquetes <= 0) {
+    mensajeCompra.textContent = "Debes indicar al menos 1 paquete.";
+    return;
+  }
+
+  try {
+    const resp = await fetch("/api/comprar-puntos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: usuarioActual.id, paquetes }),
+    });
+
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      mensajeCompra.textContent = data.error || "Error al comprar puntos.";
+      return;
+    }
+
+    usuarioActual.points = data.puntosActuales;
+    localStorage.setItem("usuarioJuego", JSON.stringify(usuarioActual));
+    refrescarUsuarioEnPantalla();
+    mensajeCompra.textContent =
+      "Compra realizada. Puntos actuales: " + usuarioActual.points;
+  } catch (e) {
+    console.error(e);
+    mensajeCompra.textContent = "Error de comunicación con el servidor.";
+  }
+}
+
+async function apostarYJugar() {
+  const mensajeJuego = document.getElementById("mensajeJuego");
+  const ganadorLabel = document.getElementById("ganador");
+  mensajeJuego.textContent = "";
+  ganadorLabel.textContent = "";
+
+  if (!usuarioActual) {
+    mensajeJuego.textContent = "Primero inicia sesión o regístrate.";
+    return;
+  }
+
+  const mesa = parseInt(document.getElementById("selectMesa").value, 10);
+  const palo = document.getElementById("selectPalo").value;
+  const puntosApuesta = parseInt(
+    document.getElementById("inputPuntosApuesta").value,
+    10,
+  );
+
+  if (!puntosApuesta || puntosApuesta <= 0) {
+    mensajeJuego.textContent = "Indica una cantidad válida de puntos a apostar.";
+    return;
+  }
+
+  try {
+    const respApuesta = await fetch("/api/apostar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: usuarioActual.id,
+        mesa,
+        palo,
+        puntos: puntosApuesta,
+      }),
+    });
+
+    const dataApuesta = await respApuesta.json();
+
+    if (!respApuesta.ok) {
+      mensajeJuego.textContent = dataApuesta.error || "Error al apostar.";
+      return;
+    }
+
+    usuarioActual.points = dataApuesta.puntosActuales;
+    localStorage.setItem("usuarioJuego", JSON.stringify(usuarioActual));
+    refrescarUsuarioEnPantalla();
+
+    const respJuego = await fetch(`/api/mesa/${mesa}/sacar`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const dataJuego = await respJuego.json();
+
+    if (!respJuego.ok) {
+      mensajeJuego.textContent = dataJuego.error || "Error en el juego.";
+      return;
+    }
+
+    const carta = document.getElementById("cartaVisual");
+    carta.innerHTML = simboloPalo(dataJuego.carta);
+    carta.classList.add("animar");
+
+    setTimeout(() => {
+      carta.classList.remove("animar");
+    }, 300);
+
+    posiciones = dataJuego.posiciones;
+    actualizarTablero();
+
+    if (dataJuego.ganador) {
+      ganadorLabel.innerText = "🏆 Ganó " + dataJuego.ganador.toUpperCase();
+
+      const actualizado = dataJuego.usuariosActualizados.find(
+        (u) => u.userId === usuarioActual.id,
+      );
+      if (actualizado) {
+        usuarioActual.points = actualizado.puntosActuales;
+        localStorage.setItem("usuarioJuego", JSON.stringify(usuarioActual));
+        refrescarUsuarioEnPantalla();
+        mensajeJuego.textContent =
+          "¡Ganaste! Se multiplicaron tus puntos apostados por 5.";
+      } else {
+        mensajeJuego.textContent = "Esta ronda no te favoreció.";
+      }
+    } else {
+      mensajeJuego.textContent =
+        "Aún no hay ganador en la mesa. Sigue jugando.";
+    }
+  } catch (e) {
+    console.error(e);
+    mensajeJuego.textContent = "Error de comunicación con el servidor.";
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const guardado = localStorage.getItem("usuarioJuego");
+  if (guardado) {
+    try {
+      usuarioActual = JSON.parse(guardado);
+    } catch (e) {
+      usuarioActual = null;
+    }
+  }
+  refrescarUsuarioEnPantalla();
+
+  document
+    .getElementById("btnRegistrar")
+    .addEventListener("click", registrarUsuario);
+  document
+    .getElementById("btnLogin")
+    .addEventListener("click", loginUsuario);
+  document
+    .getElementById("btnComprar")
+    .addEventListener("click", comprarPuntos);
+  document
+    .getElementById("btnApostarJugar")
+    .addEventListener("click", apostarYJugar);
+});

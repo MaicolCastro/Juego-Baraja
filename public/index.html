@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
     <title>Carrera de Baraja Española</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -8,14 +9,71 @@
 
 <h1>🎴 Carrera de la Baraja Española</h1>
 
+<div class="panel-usuario">
+    <div class="auth">
+        <h2>Usuario</h2>
+        <div class="fila-input">
+            <input type="text" id="nombreUsuario" placeholder="Nombre de usuario">
+        </div>
+        <div class="fila-botones-auth">
+            <button id="btnRegistrar">Registrarse</button>
+            <button id="btnLogin">Iniciar sesión</button>
+        </div>
+        <p class="mensaje" id="mensajeAuth"></p>
+    </div>
+
+    <div class="info-usuario" id="infoUsuario" style="display: none;">
+        <p><strong>Usuario:</strong> <span id="labelNombre"></span></p>
+        <p><strong>Puntos:</strong> <span id="labelPuntos"></span></p>
+
+        <div class="compras">
+            <h3>Comprar puntos</h3>
+            <p>Paquetes de 1000 puntos por 10.000 COP. Sin límite.</p>
+            <div class="fila-input">
+                <input type="number" id="inputPaquetes" min="1" value="1">
+                <button id="btnComprar">Comprar</button>
+            </div>
+            <p class="mensaje" id="mensajeCompra"></p>
+        </div>
+    </div>
+</div>
+
 <div class="contenedor">
 
     <div class="zona-carta">
+        <div class="config-juego">
+            <label>
+                Mesa:
+                <select id="selectMesa">
+                    <option value="1">Mesa 1</option>
+                    <option value="2">Mesa 2</option>
+                    <option value="3">Mesa 3</option>
+                    <option value="4">Mesa 4</option>
+                </select>
+            </label>
+
+            <label>
+                Palo:
+                <select id="selectPalo">
+                    <option value="espadas">Espadas</option>
+                    <option value="oros">Oros</option>
+                    <option value="copas">Copas</option>
+                    <option value="bastos">Bastos</option>
+                </select>
+            </label>
+
+            <label>
+                Puntos a apostar:
+                <input type="number" id="inputPuntosApuesta" min="1" value="100">
+            </label>
+        </div>
+
         <div class="carta" id="cartaVisual">
             ?
         </div>
-        <button onclick="sacarCarta()">Sacar Carta</button>
+        <button id="btnApostarJugar">Apostar y sacar carta</button>
         <h2 id="ganador"></h2>
+        <p class="mensaje" id="mensajeJuego"></p>
     </div>
 
     <div class="tablero">
