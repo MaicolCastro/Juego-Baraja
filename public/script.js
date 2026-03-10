@@ -9,6 +9,12 @@ let posiciones = {
 };
 
 let usuarioActual = null;
+let seats = {
+  1: null,
+  2: null,
+  3: null,
+  4: null,
+};
 
 function crearTablero() {
   palos.forEach((palo) => {
@@ -96,7 +102,6 @@ async function registrarUsuario() {
     }
 
     usuarioActual = data;
-    localStorage.setItem("usuarioJuego", JSON.stringify(usuarioActual));
     refrescarUsuarioEnPantalla();
     mensajeAuth.textContent = "Usuario registrado correctamente. Tienes 1000 puntos.";
   } catch (e) {
@@ -130,7 +135,6 @@ async function loginUsuario() {
     }
 
     usuarioActual = data;
-    localStorage.setItem("usuarioJuego", JSON.stringify(usuarioActual));
     refrescarUsuarioEnPantalla();
     mensajeAuth.textContent = "Sesión iniciada.";
   } catch (e) {
@@ -140,12 +144,6 @@ async function loginUsuario() {
 }
 
 async function comprarPuntos() {
-  if (!usuarioActual) {
-    document.getElementById("mensajeCompra").textContent =
-      "Primero inicia sesión o regístrate.";
-    return;
-  }
-
   const paquetesInput = document.getElementById("inputPaquetes");
   const mensajeCompra = document.getElementById("mensajeCompra");
   mensajeCompra.textContent = "";
@@ -160,7 +158,7 @@ async function comprarPuntos() {
     const resp = await fetch("/api/comprar-puntos", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: usuarioActual.id, paquetes }),
+      body: JSON.stringify({ paquetes }),
     });
 
     const data = await resp.json();
@@ -171,7 +169,6 @@ async function comprarPuntos() {
     }
 
     usuarioActual.points = data.puntosActuales;
-    localStorage.setItem("usuarioJuego", JSON.stringify(usuarioActual));
     refrescarUsuarioEnPantalla();
     mensajeCompra.textContent =
       "Compra realizada. Puntos actuales: " + usuarioActual.points;
@@ -186,11 +183,6 @@ async function apostarYJugar() {
   const ganadorLabel = document.getElementById("ganador");
   mensajeJuego.textContent = "";
   ganadorLabel.textContent = "";
-
-  if (!usuarioActual) {
-    mensajeJuego.textContent = "Primero inicia sesión o regístrate.";
-    return;
-  }
 
   const mesa = parseInt(document.getElementById("selectMesa").value, 10);
   const palo = document.getElementById("selectPalo").value;
@@ -209,7 +201,6 @@ async function apostarYJugar() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        userId: usuarioActual.id,
         mesa,
         palo,
         puntos: puntosApuesta,
@@ -223,9 +214,10 @@ async function apostarYJugar() {
       return;
     }
 
-    usuarioActual.points = dataApuesta.puntosActuales;
-    localStorage.setItem("usuarioJuego", JSON.stringify(usuarioActual));
-    refrescarUsuarioEnPantalla();
+    if (usuarioActual) {
+      usuarioActual.points = dataApuesta.puntosActuales;
+      refrescarUsuarioEnPantalla();
+    }
 
     const respJuego = await fetch(`/api/mesa/${mesa}/sacar`, {
       method: "POST",
@@ -276,15 +268,24 @@ async function apostarYJugar() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  const guardado = localStorage.getItem("usuarioJuego");
-  if (guardado) {
-    try {
-      usuarioActual = JSON.parse(guardado);
-    } catch (e) {
+  // Intentar recuperar usuario desde la cookie de sesión
+  fetch("/api/users/me", {
+    method: "GET",
+    credentials: "include",
+  })
+    .then((r) => r.json())
+    .then((u) => {
+      if (!u || u.error) {
+        usuarioActual = null;
+      } else {
+        usuarioActual = u;
+      }
+      refrescarUsuarioEnPantalla();
+    })
+    .catch(() => {
       usuarioActual = null;
-    }
-  }
-  refrescarUsuarioEnPantalla();
+      refrescarUsuarioEnPantalla();
+    });
 
   document
     .getElementById("btnRegistrar")
@@ -298,4 +299,55 @@ document.addEventListener("DOMContentLoaded", () => {
   document
     .getElementById("btnApostarJugar")
     .addEventListener("click", apostarYJugar);
+
+  // Eventos para los 4 asientos
+  document.querySelectorAll(".seat").forEach((seatEl) => {
+    const seatNumber = parseInt(seatEl.dataset.seat, 10);
+    const nombreInput = seatEl.querySelector(".seat-nombre");
+    const btnVincular = seatEl.querySelector(".seat-vincular");
+    const estado = seatEl.querySelector(".seat-estado");
+
+    btnVincular.addEventListener("click", async () => {
+      const nombre = nombreInput.value.trim();
+      if (!nombre) {
+        estado.textContent = "Escribe un nombre para este asiento.";
+        return;
+      }
+
+      try {
+        // Intentar login primero
+        let resp = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: nombre }),
+        });
+        let data = await resp.json();
+
+        if (!resp.ok && data.error === "Usuario no encontrado") {
+          // Si no existe, crearlo
+          resp = await fetch("/api/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: nombre }),
+          });
+          data = await resp.json();
+          if (!resp.ok) {
+            estado.textContent = data.error || "No se pudo crear el usuario.";
+            return;
+          }
+        } else if (!resp.ok) {
+          estado.textContent = data.error || "No se pudo iniciar sesión.";
+          return;
+        }
+
+        seats[seatNumber] = {
+          name: data.name,
+        };
+        estado.textContent = `Vinculado a ${data.name}`;
+      } catch (e) {
+        console.error(e);
+        estado.textContent = "Error de comunicación con el servidor.";
+      }
+    });
+  });
 });

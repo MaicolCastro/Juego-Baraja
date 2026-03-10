@@ -1,11 +1,18 @@
 const express = require("express");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 const { Pool } = require("pg");
 
 const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+  }),
+);
 app.use(express.json());
+app.use(cookieParser());
 app.use(express.static("public"));
 
 // -----------------------------
@@ -53,6 +60,16 @@ async function initDB() {
     );
   `);
 
+  // Tabla de sesiones simples
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      expires_at TIMESTAMP NOT NULL
+    );
+  `);
+
   console.log("Tablas verificadas/creadas.");
 }
 
@@ -73,6 +90,70 @@ const posicionesPorMesa = {
 
 function sacarCarta() {
   return palos[Math.floor(Math.random() * palos.length)];
+}
+
+// -----------------------------
+// SESIONES
+// -----------------------------
+
+function generarSessionId() {
+  return (
+    Date.now().toString(36) +
+    "-" +
+    Math.random().toString(36).substring(2, 12) +
+    "-" +
+    Math.random().toString(36).substring(2, 12)
+  );
+}
+
+async function crearSesionParaUsuario(userId) {
+  const sessionId = generarSessionId();
+  const ahora = new Date();
+  const expires = new Date(ahora.getTime() + 1000 * 60 * 60 * 24 * 30); // 30 días
+
+  await pool.query(
+    `
+      INSERT INTO sessions (id, user_id, created_at, expires_at)
+      VALUES ($1, $2, NOW(), $3)
+      ON CONFLICT (id) DO NOTHING
+    `,
+    [sessionId, userId, expires],
+  );
+
+  return { sessionId, expires };
+}
+
+async function obtenerUsuarioDesdeSesion(sessionId) {
+  if (!sessionId) return null;
+
+  const result = await pool.query(
+    `
+      SELECT u.id, u.name, u.points
+      FROM sessions s
+      JOIN users u ON u.id = s.user_id
+      WHERE s.id = $1
+        AND s.expires_at > NOW()
+    `,
+    [sessionId],
+  );
+
+  if (result.rows.length === 0) {
+    return null;
+  }
+
+  return result.rows[0];
+}
+
+async function requireSession(req, res) {
+  const sessionId = req.cookies.session_id;
+  const user = await obtenerUsuarioDesdeSesion(sessionId);
+
+  if (!user) {
+    res.status(401).json({ error: "Sesión no válida. Inicia sesión de nuevo." });
+    return null;
+  }
+
+  return user;
 }
 
 // -----------------------------
@@ -102,7 +183,17 @@ app.post("/api/register", async (req, res) => {
       [name, 1000],
     );
 
-    return res.json(result.rows[0]);
+    const user = result.rows[0];
+    const session = await crearSesionParaUsuario(user.id);
+
+    res.cookie("session_id", session.sessionId, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: !!process.env.RENDER, // en Render irá sobre HTTPS
+      expires: session.expires,
+    });
+
+    return res.json(user);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Error registrando usuario" });
@@ -126,31 +217,29 @@ app.post("/api/login", async (req, res) => {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
 
-    return res.json(result.rows[0]);
+    const user = result.rows[0];
+    const session = await crearSesionParaUsuario(user.id);
+
+    res.cookie("session_id", session.sessionId, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: !!process.env.RENDER,
+      expires: session.expires,
+    });
+
+    return res.json(user);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Error iniciando sesión" });
   }
 });
 
-// Obtener datos de usuario
-app.get("/api/users/:id", async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  if (!id) {
-    return res.status(400).json({ error: "ID inválido" });
-  }
-
+// Obtener datos de usuario desde la cookie de sesión
+app.get("/api/users/me", async (req, res) => {
   try {
-    const result = await pool.query(
-      "SELECT id, name, points FROM users WHERE id = $1",
-      [id],
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: "Usuario no encontrado" });
-    }
-
-    return res.json(result.rows[0]);
+    const user = await requireSession(req, res);
+    if (!user) return;
+    return res.json(user);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Error obteniendo usuario" });
@@ -163,12 +252,11 @@ app.get("/api/users/:id", async (req, res) => {
 
 // Comprar paquetes de 1000 puntos a 10.000 COP
 app.post("/api/comprar-puntos", async (req, res) => {
-  const { userId, paquetes } = req.body || {};
+  const { paquetes } = req.body || {};
 
-  const id = parseInt(userId, 10);
   const cantPaquetes = parseInt(paquetes, 10);
 
-  if (!id || !cantPaquetes || cantPaquetes <= 0) {
+  if (!cantPaquetes || cantPaquetes <= 0) {
     return res.status(400).json({ error: "Datos inválidos para la compra" });
   }
 
@@ -176,6 +264,11 @@ app.post("/api/comprar-puntos", async (req, res) => {
   const precioTotal = 10000 * cantPaquetes;
 
   try {
+    const userFromSession = await requireSession(req, res);
+    if (!userFromSession) return;
+
+    const id = userFromSession.id;
+
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
@@ -231,14 +324,13 @@ app.post("/api/comprar-puntos", async (req, res) => {
 // Crear apuesta para una mesa y un palo
 // Regla: hasta 4 usuarios distintos por mesa con apuestas pendientes.
 app.post("/api/apostar", async (req, res) => {
-  const { userId, mesa, palo, puntos } = req.body || {};
+  const { mesa, palo, puntos } = req.body || {};
 
-  const id = parseInt(userId, 10);
   const mesaNum = parseInt(mesa, 10);
   const puntosApuesta = parseInt(puntos, 10);
 
-  if (!id || !mesaNum || mesaNum < 1 || mesaNum > 4) {
-    return res.status(400).json({ error: "Mesa o usuario inválidos" });
+  if (!mesaNum || mesaNum < 1 || mesaNum > 4) {
+    return res.status(400).json({ error: "Mesa inválida" });
   }
 
   if (!palos.includes(palo)) {
@@ -255,6 +347,15 @@ app.post("/api/apostar", async (req, res) => {
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
+
+      const userFromSession = await requireSession(req, res);
+      if (!userFromSession) {
+        await client.query("ROLLBACK");
+        client.release();
+        return;
+      }
+
+      const id = userFromSession.id;
 
       const userRes = await client.query(
         "SELECT id, points FROM users WHERE id = $1 FOR UPDATE",

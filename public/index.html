@@ -11,7 +11,7 @@
 
 <div class="panel-usuario">
     <div class="auth">
-        <h2>Usuario</h2>
+        <h2>Jugador principal</h2>
         <div class="fila-input">
             <input type="text" id="nombreUsuario" placeholder="Nombre de usuario">
         </div>
@@ -23,7 +23,7 @@
     </div>
 
     <div class="info-usuario" id="infoUsuario" style="display: none;">
-        <p><strong>Usuario:</strong> <span id="labelNombre"></span></p>
+        <p><strong>Usuario activo:</strong> <span id="labelNombre"></span></p>
         <p><strong>Puntos:</strong> <span id="labelPuntos"></span></p>
 
         <div class="compras">
@@ -41,7 +41,47 @@
 <div class="contenedor">
 
     <div class="zona-carta">
+        <div class="seats">
+            <h2>Asientos de la mesa</h2>
+            <div class="seats-grid">
+                <div class="seat" data-seat="1">
+                    <h3>Jugador 1</h3>
+                    <input type="text" class="seat-nombre" placeholder="Nombre jugador 1">
+                    <button class="seat-vincular">Vincular / Crear</button>
+                    <p class="seat-estado"></p>
+                </div>
+                <div class="seat" data-seat="2">
+                    <h3>Jugador 2</h3>
+                    <input type="text" class="seat-nombre" placeholder="Nombre jugador 2">
+                    <button class="seat-vincular">Vincular / Crear</button>
+                    <p class="seat-estado"></p>
+                </div>
+                <div class="seat" data-seat="3">
+                    <h3>Jugador 3</h3>
+                    <input type="text" class="seat-nombre" placeholder="Nombre jugador 3">
+                    <button class="seat-vincular">Vincular / Crear</button>
+                    <p class="seat-estado"></p>
+                </div>
+                <div class="seat" data-seat="4">
+                    <h3>Jugador 4</h3>
+                    <input type="text" class="seat-nombre" placeholder="Nombre jugador 4">
+                    <button class="seat-vincular">Vincular / Crear</button>
+                    <p class="seat-estado"></p>
+                </div>
+            </div>
+        </div>
+
         <div class="config-juego">
+            <label>
+                Asiento que apuesta:
+                <select id="selectSeat">
+                    <option value="1">Jugador 1</option>
+                    <option value="2">Jugador 2</option>
+                    <option value="3">Jugador 3</option>
+                    <option value="4">Jugador 4</option>
+                </select>
+            </label>
+
             <label>
                 Mesa:
                 <select id="selectMesa">

@@ -88,6 +88,28 @@ input[type="number"]::-webkit-outer-spin-button {
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
 }
 
+.seats {
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.seats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.seat {
+    background: rgba(0,0,0,0.35);
+    padding: 10px;
+    border-radius: 10px;
+    text-align: left;
+}
+
+.seat h3 {
+    margin-top: 0;
+}
+
 .config-juego {
     display: flex;
     flex-direction: column;
